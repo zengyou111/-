@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码作业相似性检测</title>
+    <!-- 使用Bootstrap CDN链接 -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            background: linear-gradient(to right, #56CCF2, #2F80ED);
+            color: #333333;
+        }
+        .card {
+            max-width: 600px;
+            margin: auto;
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-top: 50px;
+        }
+        .custom-file-label::after {
+            content: "选择文件";
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .btn-upload {
+            background-color: #2F80ED;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .result-container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card text-dark">
+        <h2>代码作业相似性检测</h2>
+        <form id="uploadForm">
+            <div class="form-group">
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="file1" name="file1" accept=".txt, .c, .cpp" onchange="displayFileName('file1')">
+                    <label class="custom-file-label" for="file1">选择文件1</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="file2" name="file2" accept=".txt, .c, .cpp" onchange="displayFileName('file2')">
+                    <label class="custom-file-label" for="file2">选择文件2</label>
+                </div>
+            </div>
+            <button type="button" class="btn btn-upload" onclick="submitFiles()">代码检测</button>
+        </form>
+
+        <div class="result-container">
+            <div class="card">
+                <h4>相似性检测结果：</h4>
+                <p id="similarityResult"></p>
+                <h4>是否相似：</h4>
+                <p id="isSimilar"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function displayFileName(inputId) {
+            var input = document.getElementById(inputId);
+            var label = document.querySelector(`[for=${inputId}]`);
+            var fileName = input.files[0].name;
+            label.innerHTML = fileName;
+        }
+
+        function submitFiles() {
+            var file1 = document.getElementById("file1").files[0];
+            var file2 = document.getElementById("file2").files[0];
+            console.log(file1.name)
+            console.log(file2.name)
+            if (!file1 || !file2) {
+                console.error('Files not provided');
+                return;
+            }
+
+            readFileContent(file1, function(content1) {
+                readFileContent(file2, function(content2) {
+                    // 构造数据对象
+                    var data = {
+                        content1: content1,
+                        content2: content2
+                    };
+
+                    // 发送数据给后端
+                    fetch('http://192.168.79.1:5000/code-similarity-content', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        var similarityResult = document.getElementById("similarityResult");
+                        var isSimilar = document.getElementById("isSimilar");
+
+                        similarityResult.innerHTML = '相似性检测结果: ' + data.result;
+
+                        if (data.result > 0.8) {
+                            isSimilar.innerHTML = '代码相似';
+                        } else {
+                            isSimilar.innerHTML = '代码不相似';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                });
+            });
+        }
+
+        function readFileContent(file, callback) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var content = e.target.result;
+                callback(content);
+            };
+            reader.readAsText(file);
+        }
+    </script>
+
+    <!-- 使用Bootstrap的JS库 -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
